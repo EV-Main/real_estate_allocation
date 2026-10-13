@@ -3,7 +3,7 @@
     v_flakes.url = "github:valeratrades/v_flakes?ref=v1.6";
     # Brand assets. Not a flake — just a pinned source tree we copy the logo out
     # of. "Latest logo" = `nix flake update ev_assets` (bumps flake.lock).
-    ev_assets = { url = "github:EV-invest/assets"; flake = false; };
+    ev_assets = { url = "github:EV-Main/assets"; flake = false; };
   };
   outputs = { self, v_flakes, ev_assets }:
     let
@@ -99,7 +99,7 @@
           inherit pkgs pname rs;
           enable = true;
           lastSupportedVersion = "nightly-2026-06-16";
-          containerRelease = { registry = "ghcr.io/EV-invest"; };
+          containerRelease = { registry = "ghcr.io/ev-main"; };
           jobs.default = true;
           lfs = false;
           gitignore.extra = ''
