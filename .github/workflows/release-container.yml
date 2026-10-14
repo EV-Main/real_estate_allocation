@@ -66,10 +66,10 @@ jobs:
         \ \"::group::$name\"\n  RESULT=\"$(nix build \".#$name-container\" --no-link\
         \ --print-out-paths --quiet)\"\n  if [ \"${{ github.ref_type }}\" = \"tag\"\
         \ ]; then\n    nix run nixpkgs#skopeo -- copy \\\n      \"docker-archive:$RESULT\"\
-        \ \\\n      \"docker://ghcr.io/ev-invest/${name,,}:${{ github.ref_name }}\"\
-        \n  elif [ \"${{ github.ref }}\" = \"refs/heads/dev\" ]; then\n    nix run\
+        \ \\\n      \"docker://ghcr.io/ev-main/${name,,}:${{ github.ref_name }}\"\n\
+        \  elif [ \"${{ github.ref }}\" = \"refs/heads/dev\" ]; then\n    nix run\
         \ nixpkgs#skopeo -- copy \\\n      \"docker-archive:$RESULT\" \\\n      \"\
-        docker://ghcr.io/ev-invest/${name,,}:dev-${GITHUB_SHA::8}\"\n  else\n    echo\
+        docker://ghcr.io/ev-main/${name,,}:dev-${GITHUB_SHA::8}\"\n  else\n    echo\
         \ \"cache-seed build ($name) on ${{ github.ref_name }} — skipping GHCR push\"\
         \n  fi\n  echo \"::endgroup::\"\ndone\n"
       shell: bash

@@ -207,7 +207,7 @@ fn BuildTag() -> Element {
 	let seed_group = use_context::<SeedGroup>();
 	rsx! {
 		a {
-			href: "https://github.com/ev-invest/real_estate_allocation/commit/{hash}",
+			href: "https://github.com/EV-Main/real_estate_allocation/commit/{hash}",
 			target: "_blank",
 			rel: "noopener noreferrer",
 			class: "fixed bottom-1 right-2 z-10 font-mono text-[10px] text-muted-foreground/25 transition-colors hover:text-muted-foreground/70",
