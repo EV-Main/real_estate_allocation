@@ -18,6 +18,9 @@ manual_is_multiple_of = "allow"
 [workspace.lints.rust]
 unused_features = "allow"
 
+[workspace.lints.cargo]
+non_kebab_case_bins = "allow"
+
 [workspace.dependencies]
 clap = { version = "^4.6", features = ["derive"] }
 color-eyre = "^0.6"
