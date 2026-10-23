@@ -27,15 +27,22 @@ use ev_lib::i18n::Locale;
 use real_estate_allocation_core::domain::Building;
 use serde::Deserialize;
 
+/// building id → locale → field → entry.
+type Sidecar = HashMap<String, HashMap<String, HashMap<String, Entry>>>;
+/// Handover / legal terms, in this locale where one exists.
+pub fn terms(building: &Building, locale: Locale) -> Option<&str> {
+	building.terms.as_deref().map(|current| field(building, locale, "terms", current))
+}
+/// The investment rationale, in this locale where one exists.
+pub fn reasoning(building: &Building, locale: Locale) -> Option<&str> {
+	building.additional_reasoning.as_deref().map(|current| field(building, locale, "reasoning", current))
+}
 /// `{ en, t }` — the same provenance shape the message catalogues use.
 #[derive(Deserialize)]
 struct Entry {
 	en: String,
 	t: String,
 }
-
-/// building id → locale → field → entry.
-type Sidecar = HashMap<String, HashMap<String, HashMap<String, Entry>>>;
 
 static SIDECAR: LazyLock<Sidecar> = LazyLock::new(|| serde_json::from_str(include_str!("translations.json")).expect("translations.json is well-formed"));
 
@@ -56,16 +63,6 @@ fn field<'a>(building: &'a Building, locale: Locale, name: &str, current: &'a st
 		// Refuse a translation whose English source has moved on.
 		.filter(|entry| entry.en == current)
 		.map_or(current, |entry| entry.t.as_str())
-}
-
-/// Handover / legal terms, in this locale where one exists.
-pub fn terms(building: &Building, locale: Locale) -> Option<&str> {
-	building.terms.as_deref().map(|current| field(building, locale, "terms", current))
-}
-
-/// The investment rationale, in this locale where one exists.
-pub fn reasoning(building: &Building, locale: Locale) -> Option<&str> {
-	building.additional_reasoning.as_deref().map(|current| field(building, locale, "reasoning", current))
 }
 
 #[cfg(test)]
