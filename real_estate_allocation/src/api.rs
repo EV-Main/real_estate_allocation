@@ -140,7 +140,7 @@ pub async fn am_i_admin(token: String) -> Result<bool, ServerFnError> {
 /// bands without their own row open onto. Admin-only — this is the layout every visitor
 /// who hasn't cached their own lands on.
 #[server]
-pub async fn save_default_layout(json: String, band: dockviewers::core::Band, token: String) -> Result<(), ServerFnError> {
+pub async fn save_default_layout(json: String, band: tilers::core::Band, token: String) -> Result<(), ServerFnError> {
 	use secrecy::ExposeSecret as _;
 
 	let layout: serde_json::Value = serde_json::from_str(&json).map_err(|e| ServerFnError::new(format!("layout not json: {e}")))?;
@@ -149,7 +149,7 @@ pub async fn save_default_layout(json: String, band: dockviewers::core::Band, to
 		return Err(ServerFnError::new("not authorized to publish a layout"));
 	}
 	let key = band.to_string();
-	if band == dockviewers::core::Band::Xl {
+	if band == tilers::core::Band::Xl {
 		store.save_layout("", "default", &layout.to_string()).await.map_err(to_server_err)?;
 	}
 	store.save_layout("", &key, &layout.to_string()).await.map_err(to_server_err)?;
@@ -159,7 +159,7 @@ pub async fn save_default_layout(json: String, band: dockviewers::core::Band, to
 /// This band's published seed, falling back to the `default` one, then to the
 /// committed `DEFAULT_LAYOUT` when nothing has been published in this DB yet.
 #[server]
-pub async fn load_default_layout(band: dockviewers::core::Band) -> Result<Option<String>, ServerFnError> {
+pub async fn load_default_layout(band: tilers::core::Band) -> Result<Option<String>, ServerFnError> {
 	let store = app_state().await?.store;
 	let key = band.to_string();
 	if let Some(doc) = store.load_layout("", &key).await.map_err(to_server_err)? {
@@ -411,8 +411,8 @@ mod tests {
 	// rejected loudly.
 	#[test]
 	fn seed_resolution() {
-		use dockviewers::core::Band::*;
-		let resolve = |file: &str, band: dockviewers::core::Band| {
+		use tilers::core::Band::*;
+		let resolve = |file: &str, band: tilers::core::Band| {
 			let seeds = parse_seeds(file).unwrap();
 			seeds.get(&band.to_string()).or_else(|| seeds.get("default")).cloned()
 		};

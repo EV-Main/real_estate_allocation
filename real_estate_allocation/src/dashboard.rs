@@ -1,8 +1,8 @@
 use std::rc::Rc;
 
 use dioxus::prelude::*;
-use dockviewers::dioxus::{Config, DockPanel, Group, GroupId, MinSize, PackedApi, PackedArea, PanelId, Saved, Step};
 use ev_lib::t;
+use tilers::dioxus::{Config, DockPanel, Group, GroupId, MinSize, PackedApi, PackedArea, PanelId, Saved, Step};
 
 use crate::{
 	api::load_default_layout,
@@ -107,7 +107,7 @@ pub fn Dashboard() -> Element {
 						let msg = match crate::api::save_default_layout(json, band, crate::api::admin_token()).await {
 							// An xl publish doubles as the `default` seed (see `save_default_layout`).
 							Ok(()) => match band {
-								dockviewers::core::Band::Xl => t!(tr, "dashboard.layoutPublishedDefault", "Layout published (xl + default)"),
+								tilers::core::Band::Xl => t!(tr, "dashboard.layoutPublishedDefault", "Layout published (xl + default)"),
 								band => t!(tr, "dashboard.layoutPublished", "Layout published ({band})", band = band.to_string()),
 							},
 							Err(e) => {

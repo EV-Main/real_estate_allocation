@@ -27,7 +27,7 @@ pub type BuildingResource = Resource<Option<Building>>;
 
 /// Band the dashboard currently has a layout for, written on every band entry and
 /// surfaced in [`BuildTag`]. `None` until the first measure.
-pub type SeedGroup = Signal<Option<dockviewers::core::Band>>;
+pub type SeedGroup = Signal<Option<tilers::core::Band>>;
 
 #[component]
 pub fn App() -> Element {
