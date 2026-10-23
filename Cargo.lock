@@ -1799,40 +1799,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dockviewers"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d85ac8f9793482a46532cfe1814793ed57b46f52625888bff8df9fa2dca44a3c"
-dependencies = [
- "dockviewers_core",
- "dockviewers_dioxus",
-]
-
-[[package]]
-name = "dockviewers_core"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fac6c814cb2f7d83c16f96303d7017ddab3ebb0dc43ef40368568fcc815293c3"
-dependencies = [
- "serde",
- "serde_json",
- "wasm-bindgen",
- "web-sys",
-]
-
-[[package]]
-name = "dockviewers_dioxus"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b9f5b13eb1b4df1714a54de230df1548156ec70746d2f214642329b3acc06966"
-dependencies = [
- "dioxus",
- "dockviewers_core",
- "wasm-bindgen",
- "web-sys",
-]
-
-[[package]]
 name = "document-features"
 version = "0.2.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4140,7 +4106,6 @@ dependencies = [
  "derive-new",
  "dioxus",
  "dioxus-ssr",
- "dockviewers",
  "ev_lib",
  "getrandom 0.3.4",
  "getrandom 0.4.3",
@@ -4158,6 +4123,7 @@ dependencies = [
  "sqlx",
  "strum",
  "thiserror 2.0.18",
+ "tilers",
  "tokio",
  "tower-http",
  "tracing-subscriber",
@@ -5384,6 +5350,40 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f60246a4944f24f6e018aa17cdeffb7818b76356965d03b07d6a9886e8962185"
 dependencies = [
  "cfg-if",
+]
+
+[[package]]
+name = "tilers"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9c1daf93252d8dbd8c92031a7ffddd459b142ca6fb82e754cdc80a31f14d32ef"
+dependencies = [
+ "tilers_core",
+ "tilers_dioxus",
+]
+
+[[package]]
+name = "tilers_core"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4b28e736e03b0761d6097c9671ec959575869421b828d33c1f492f7dccd7acc8"
+dependencies = [
+ "serde",
+ "serde_json",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "tilers_dioxus"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f2c5625f8cb63401c59bb7c90d8ad88285690104f28872d0d93385456942b27f"
+dependencies = [
+ "dioxus",
+ "tilers_core",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]
