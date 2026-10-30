@@ -4,8 +4,8 @@
 [<img alt="docs.rs" src="https://img.shields.io/badge/docs.rs-66c2a5?style=for-the-badge&labelColor=555555&logo=docs.rs&style=flat-square" height="20">](https://docs.rs/real_estate_allocation)
 ![Lines Of Code](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/valeratrades/b48e6f02c61942200e7d1e3eeabf9bcb/raw/real_estate_allocation-loc.json)
 <br>
-[<img alt="ci errors" src="https://img.shields.io/github/actions/workflow/status/EV-Main/real_estate_allocation/errors.yml?branch=main&style=for-the-badge&style=flat-square&label=errors&labelColor=420d09" height="20">](https://github.com/EV-Main/real_estate_allocation/actions?query=branch%3Amain) <!--NB: Won't find it if repo is private-->
-[<img alt="ci warnings" src="https://img.shields.io/github/actions/workflow/status/EV-Main/real_estate_allocation/warnings.yml?branch=main&style=for-the-badge&style=flat-square&label=warnings&labelColor=d16002" height="20">](https://github.com/EV-Main/real_estate_allocation/actions?query=branch%3Amain) <!--NB: Won't find it if repo is private-->
+[<img alt="ci errors" src="https://img.shields.io/github/actions/workflow/status/EV-Estate/real_estate_allocation/errors.yml?branch=main&style=for-the-badge&style=flat-square&label=errors&labelColor=420d09" height="20">](https://github.com/EV-Estate/real_estate_allocation/actions?query=branch%3Amain) <!--NB: Won't find it if repo is private-->
+[<img alt="ci warnings" src="https://img.shields.io/github/actions/workflow/status/EV-Estate/real_estate_allocation/warnings.yml?branch=main&style=for-the-badge&style=flat-square&label=warnings&labelColor=d16002" height="20">](https://github.com/EV-Estate/real_estate_allocation/actions?query=branch%3Amain) <!--NB: Won't find it if repo is private-->
 
 Real Estate allocation service and its microfrontend
 <!-- markdownlint-disable -->
@@ -29,7 +29,7 @@ Tag the repo; CI does the rest (no manual build/ship):
 ```sh
 git tag v0.1.0 && git push --tags    # → release-container.yml builds on
                                       #   ubuntu-24.04-arm + pushes
-                                      #   ghcr.io/EV-invest/real_estate_allocation:v0.1.0
+                                      #   ghcr.io/ev-estate/real_estate_allocation:v0.1.0
 ```
 
 Manual build/push (when needed):
@@ -37,7 +37,7 @@ Manual build/push (when needed):
 ```sh
 nix build .#container    # result → a docker-archive .tar.gz
 skopeo copy docker-archive:result \
-  docker://ghcr.io/EV-invest/real_estate_allocation:v0.1.0
+  docker://ghcr.io/ev-estate/real_estate_allocation:v0.1.0
 ```
 
 ### Contract

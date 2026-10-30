@@ -1,12 +1,13 @@
 # Architecture
 
-A standalone **microfrontend** visualising the firm's property allocation: a
-2×2 dashboard (portfolio map, price-series chart, media/documents, deal details)
-for a selected property. Built as a **Dioxus 0.7 fullstack** app (SSR + `#[server]`
-functions in one binary) on top of `ev` (`architecture` + `uikit`) and `v_utils`.
+A **page microfrontend** visualising the firm's property allocation: a docked
+dashboard (portfolio map, price-series chart, media/documents, deal details) for a
+selected property. A Dioxus 0.7 client (`<mfe-real-estate-data>`, CSR — no SSR, no
+hydration) plus an axum server with the `#[server]` functions, on top of `ev`
+(`architecture` + `uikit`) and `v_utils`.
 
-It embeds inside a larger system that hands it an OAuth token + admin list, so
-there is **no login** — admin actions are gated on a token the host puts on
+It mounts inside a host page that hands it an OAuth token + admin list, so there is
+**no login** — admin actions are gated on a token the host puts on
 `window.__reaAdminToken`, re-checked server-side.
 
 ```mermaid
@@ -38,14 +39,10 @@ flowchart LR
   out of the fullstack context via `consume_context`.
 - `config` *(server-only)* — `AppConfig` (`maps_api_key`, `db_path`, `data_dir`,
   `admin_token`, `admins`) over `v_utils` `LiveSettings`.
-- `app` / `dashboard` / `panels` — UI. `app` owns the router (`Route`): `/` →
-  `Home` (the full dashboard) and `/embed/overview` → the embed. Selection is a
-  root `Signal<Option<PropertyId>>` shared via context; each panel `use_resource`s
+- `app` / `dashboard` / `panels` — UI. `app::App` is the root (no router: the host
+  owns the URL; deep links are read off its query, see **Embedding**). Selection is
+  a root `Signal<Option<BuildingId>>` shared via context; each panel `use_resource`s
   keyed on it.
-- `embed` — the iframe-only `/embed/overview` surface (marketing bento: two
-  property tiles that deep-link into `/?property=<id>`, a market note, and a
-  client-side ROI calculator). Carries none of the dashboard shell/contexts. See
-  **Embedding** below.
 - `map` — **isolated** Google-Maps module; the only file touching the JS API. The
   inline-JS `extern` is fully `cfg(wasm32)`-gated, so the server build never links it.
 
@@ -71,20 +68,38 @@ Associated media (pics / pitch-deck / documents) are separate `PropertyFile`
 records (`{ id, property_id, kind: Pic|PitchDeck|Document, filename, content_type }`),
 not fields on `Property`.
 
-## Embedding (iframe)
-Routes under `/embed/*` are meant to be `<iframe>`d by a host page. Anything new
-there must keep these invariants:
-- **No frame-busting headers.** We send no `X-Frame-Options`/CSP today, so framing
-  works. If a proxy ever fronts us, restrict per-route with
-  `Content-Security-Policy: frame-ancestors <host-origins>` — never `X-Frame-Options: DENY`.
-- **Links escape the frame.** In-app deep-links use `target="_top"` so a click
-  navigates the *host* page, not the iframe. Destination host is still relative
-  (`/?property=…`) — point it at the deployed app origin once decided.
-- **Self-sizing.** No `min-h-screen`; the surface sizes to content (body bg is
-  `main-black`). The host sets iframe height — add resize-`postMessage` only if
-  auto-height is needed.
-- **Shell-free.** An embed renders only its section: no `TopBar`, no dashboard
-  contexts, no Maps script.
+## Embedding
+Two microfrontends, both `ev_lib::mfe!` custom elements mounted in the host's light
+DOM (never an iframe), both reading the locale off the host's `<html lang>`:
+
+| element | crate | kind | served by | mounted at |
+|---|---|---|---|---|
+| `<mfe-real-estate-data>` | `real_estate_allocation_data` (this dashboard) | page | REA itself, `/mfe/data/` | estate host `/data` |
+| `<mfe-real-estate-overview>` | `real_estate_allocation_embeds` (marketing tile) | component | baked into the host's `public/mfe/` (`nix build .#embeds`) | landing / estate pages |
+
+The page bundle lives same-origin with its host: the edge routes `/mfe/data/*` and
+`/api/embed/*` on `https://estate.evinvest.ltd` to this server (`rea.evinvest.ltd`
+is gone). What the server answers (`main.rs`):
+
+| path | what | cache |
+|---|---|---|
+| `/mfe/data/mfe-real-estate-data.js` | the stable entry the host registry points at | `no-cache` + content `ETag` |
+| `/mfe/data/data.css` | the stylesheet `mfe!` injects (`input.css`, utilities in `reamfe`) | `no-cache` + content `ETag` |
+| `/mfe/data/<rev>/*` | wasm-bindgen glue, wasm, snippets (`<rev>` = content hash at boot) | `immutable` |
+| `/mfe/data/api/*` | the `#[server]` fns (root set by the bundle from its own origin) | — |
+| `/api/embed/building/{id}` | the overview tile's plain JSON | — |
+| `/health` | probe | — |
+
+Invariants:
+- **No `dioxus/fullstack` in the wasm graph.** It forces `dioxus-web/hydrate`, and a
+  host page carries no hydration data; server-fn stubs come from `dioxus-fullstack`
+  directly. Nothing in the client may use `asset!` (manganis URLs are `dx`'s).
+- **The host owns the document**: fonts, tokens and preflight cascade in; our CSS is
+  utilities-only in the host's lowest layer.
+- **Deep links are the host URL's query** (`?building=`, `?appt=`, `?selection=`),
+  read at mount and kept current with `replaceState` that preserves the host's state.
+- **Shell-free tile.** The overview renders only its section; its deep links point at
+  `<rea-url>/data?building=…`.
 
 ## Persistence
 - SQLite via `sqlx` (`runtime-tokio`, `sqlite`). One pool, schema run on startup.
@@ -95,21 +110,17 @@ there must keep these invariants:
   the chart projects a dotted tail to now.
 
 ## Build / run
-Requires `nix develop` (provides `dx`, `nodejs`, the `wasm32` target).
+Requires `nix develop` (the `wasm32` target, `wasm-bindgen-cli` pinned to the crate,
+Tailwind v4).
 
 ```sh
-nix develop
-# 1. Tailwind v4 → assets/tailwind.css (keep running alongside dx serve):
-cd real_estate_allocation
-npx @tailwindcss/cli -i ./input.css -o ./assets/tailwind.css --watch &
-# 2. Fullstack dev server (SSR + server fns + wasm client):
-cd .. && dx serve --package real_estate_allocation
+nix run .#dev            # debug page bundle → target/debug/public, then the server
+                         # on :59079 (bare harness at /; estate's /data is the real host)
+nix build .#mfe-data     # the release page bundle; `.#default` = server + it in public/
+nix run .#dev-embeds     # the overview tile, standalone
 ```
-
-The brand logo at `assets/logo.svg` is **generated, not committed** (gitignored):
-the `ev_assets` flake input (pinned `github:EV-invest/assets`) is copied in by the
-devShell / `nix run .#dev` / the pure build. Refresh it with `nix flake update ev_assets`.
 
 Seeding runs on first launch when the DB is empty (~6 properties across all three
 states, plus a sample pic). Config (incl. `maps_api_key`, `admin_token`) is read
-through `LiveSettings`; without a Maps key the map shows a placeholder.
+through `LiveSettings`; without a Maps key the map shows a placeholder. The Maps key
+is referrer-restricted: the host origin must be on its allowlist.

@@ -4,7 +4,7 @@ use ev_lib::t;
 use crate::{
 	dashboard::Dashboard,
 	domain::{Building, BuildingId, PropertyStateKind},
-	i18n::{use_provide_i18n, use_t},
+	i18n::use_t,
 };
 
 /// The selected building, shared from the root so all panels read/write the same
@@ -29,66 +29,13 @@ pub type BuildingResource = Resource<Option<Building>>;
 /// surfaced in [`BuildTag`]. `None` until the first measure.
 pub type SeedGroup = Signal<Option<tilers::core::Band>>;
 
+/// The dashboard, mounted by the `real_estate_allocation_data` page bundle into
+/// `<mfe-real-estate-data>`. The host owns the document: fonts, tokens, preflight
+/// and the `Translator` (`mfe!`) all come from above.
 #[component]
 pub fn App() -> Element {
-	// The router canonicalises the URL to the matched route the instant it mounts,
-	// dropping any query it doesn't model (`?building`, `?appt`, `?selection`). App
-	// renders before the router, so snapshot the deep link here and hand it down.
-	use_context_provider(DeepLink::capture);
-	// One translator for the whole zone, installed before anything renders. A
-	// panel that built its own would be a second place the locale could be wrong.
-	use_provide_i18n();
-	rsx! {
-		document::Stylesheet { href: asset!("/assets/tailwind.css") }
-		// Self-hosted brand webfonts, bundled and `@font-face`d by the uikit — no
-		// CDN, renders identically offline / behind a CSP.
-		ev_lib::uikit::Fonts {}
-		Router::<Route> {}
-	}
-}
-
-/// Deep-link state read from the URL once at startup, before the router wipes it.
-#[derive(Clone)]
-struct DeepLink {
-	building: Option<BuildingId>,
-	appt: Option<u32>,
-	filter: Vec<PropertyStateKind>,
-}
-
-impl DeepLink {
-	fn capture() -> Self {
-		#[cfg(target_arch = "wasm32")]
-		{
-			// URL is user-editable: silently drop tokens that don't name a state, and
-			// fall back to the default set if nothing valid remains.
-			let filter: Vec<_> = crate::map::url_selection().split(',').filter_map(|s| s.trim().parse().ok()).collect();
-			Self {
-				building: crate::domain::parse_building_id(&crate::map::url_building()).ok(),
-				appt: crate::map::url_appt().parse().ok(),
-				filter: if filter.is_empty() { vec![PropertyStateKind::Purchased] } else { filter },
-			}
-		}
-		#[cfg(not(target_arch = "wasm32"))]
-		Self {
-			building: None,
-			appt: None,
-			filter: vec![PropertyStateKind::Purchased],
-		}
-	}
-}
-/// One surface: the full dashboard at `/`. The marketing overview is no longer a
-/// route here — `embed::Overview` is mounted only by the cross-origin microfrontend
-/// bundle (`real_estate_allocation_embeds`), which the landing host composes directly.
-#[derive(Clone, PartialEq, Routable)]
-enum Route {
-	#[route("/")]
-	Home {},
-}
-
-#[component]
-fn Home() -> Element {
 	let tr = use_t();
-	let deep = use_context::<DeepLink>();
+	let deep = use_hook(DeepLink::capture);
 	let selected: SelectedBuilding = use_signal(|| deep.building);
 	use_context_provider(|| selected);
 
@@ -168,8 +115,8 @@ fn Home() -> Element {
 	use_effect(move || ready.set(true));
 
 	rsx! {
-		// Chromeless: whoever hosts REA frames it and owns the surrounding nav —
-		// we render only our own dashboard, filling the viewport we're given.
+		// Chromeless: the host owns the surrounding nav — we render only our own
+		// dashboard, filling the viewport we're given.
 		main {
 			if ready() {
 				if let Some(src) = maps_src {
@@ -197,6 +144,35 @@ fn Home() -> Element {
 		}
 	}
 }
+/// Deep-link state read from the host URL once at startup.
+#[derive(Clone)]
+struct DeepLink {
+	building: Option<BuildingId>,
+	appt: Option<u32>,
+	filter: Vec<PropertyStateKind>,
+}
+
+impl DeepLink {
+	fn capture() -> Self {
+		#[cfg(target_arch = "wasm32")]
+		{
+			// URL is user-editable: silently drop tokens that don't name a state, and
+			// fall back to the default set if nothing valid remains.
+			let filter: Vec<_> = crate::map::url_selection().split(',').filter_map(|s| s.trim().parse().ok()).collect();
+			Self {
+				building: crate::domain::parse_building_id(&crate::map::url_building()).ok(),
+				appt: crate::map::url_appt().parse().ok(),
+				filter: if filter.is_empty() { vec![PropertyStateKind::Purchased] } else { filter },
+			}
+		}
+		#[cfg(not(target_arch = "wasm32"))]
+		Self {
+			building: None,
+			appt: None,
+			filter: vec![PropertyStateKind::Purchased],
+		}
+	}
+}
 
 /// Inconspicuous deployed-version tag pinned to the bottom-right (plus the seed group
 /// the dock is on), linking to the exact commit on GitHub so we can tell what's live
@@ -207,7 +183,7 @@ fn BuildTag() -> Element {
 	let seed_group = use_context::<SeedGroup>();
 	rsx! {
 		a {
-			href: "https://github.com/EV-Main/real_estate_allocation/commit/{hash}",
+			href: "https://github.com/EV-Estate/real_estate_allocation/commit/{hash}",
 			target: "_blank",
 			rel: "noopener noreferrer",
 			class: "fixed bottom-1 right-2 z-10 font-mono text-[10px] text-muted-foreground/25 transition-colors hover:text-muted-foreground/70",

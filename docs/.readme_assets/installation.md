@@ -13,7 +13,7 @@ Tag the repo; CI does the rest (no manual build/ship):
 ```sh
 git tag v0.1.0 && git push --tags    # → release-container.yml builds on
                                       #   ubuntu-24.04-arm + pushes
-                                      #   ghcr.io/EV-invest/real_estate_allocation:v0.1.0
+                                      #   ghcr.io/ev-estate/real_estate_allocation:v0.1.0
 ```
 
 Manual build/push (when needed):
@@ -21,7 +21,7 @@ Manual build/push (when needed):
 ```sh
 nix build .#container    # result → a docker-archive .tar.gz
 skopeo copy docker-archive:result \
-  docker://ghcr.io/EV-invest/real_estate_allocation:v0.1.0
+  docker://ghcr.io/ev-estate/real_estate_allocation:v0.1.0
 ```
 
 ## Contract

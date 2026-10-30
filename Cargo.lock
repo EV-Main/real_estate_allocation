@@ -1184,7 +1184,6 @@ dependencies = [
  "dioxus-html",
  "dioxus-liveview",
  "dioxus-logger",
- "dioxus-router",
  "dioxus-server",
  "dioxus-signals",
  "dioxus-ssr",
@@ -4105,6 +4104,7 @@ dependencies = [
  "color-eyre",
  "derive-new",
  "dioxus",
+ "dioxus-fullstack",
  "dioxus-ssr",
  "ev_lib",
  "getrandom 0.3.4",
@@ -4130,7 +4130,6 @@ dependencies = [
  "uuid",
  "v_utils",
  "wasm-bindgen",
- "web-sys",
 ]
 
 [[package]]
@@ -4145,6 +4144,18 @@ dependencies = [
  "thiserror 2.0.18",
  "uuid",
  "v_utils",
+]
+
+[[package]]
+name = "real_estate_allocation_data"
+version = "0.1.0"
+dependencies = [
+ "dioxus",
+ "dioxus-fullstack",
+ "ev_lib",
+ "real_estate_allocation",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]

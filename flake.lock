@@ -67,22 +67,6 @@
         "type": "github"
       }
     },
-    "ev_assets": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1783609909,
-        "narHash": "sha256-3HHZzIhidhEsW3BbretCMwZztYnFCiaac7GXnYuXwPo=",
-        "owner": "EV-Main",
-        "repo": "assets",
-        "rev": "1d97b25d6e105b0b84b50d1412936e717841f07f",
-        "type": "github"
-      },
-      "original": {
-        "owner": "EV-Main",
-        "repo": "assets",
-        "type": "github"
-      }
-    },
     "flake-compat": {
       "flake": false,
       "locked": {
@@ -278,7 +262,6 @@
     },
     "root": {
       "inputs": {
-        "ev_assets": "ev_assets",
         "v_flakes": "v_flakes"
       }
     },

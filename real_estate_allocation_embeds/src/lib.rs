@@ -19,7 +19,7 @@ mod view;
 use dioxus::prelude::*;
 use ev_lib::mfe::bundle_origin;
 use real_estate_allocation_core::domain::Building;
-use view::{AssetOrigin, Featured, Overview, Q1_PROPERTY};
+use view::{AssetOrigin, DataOrigin, Featured, Overview, Q1_PROPERTY};
 
 // The producer entrypoint: generates the custom-element registration, the
 // `wasm-bindgen(start)` entrypoint, the origin self-derivation, and `MFE_MANIFEST`
@@ -45,11 +45,12 @@ fn OverviewContainer() -> Element {
 		b
 	});
 	use_context_provider(|| AssetOrigin(bundle_origin()));
+	use_context_provider(|| DataOrigin(rea_origin()));
 	let building = Featured(building.read().clone());
 	rsx! { Overview { building } }
 }
 
-/// REA backend origin for the data fetch. The host page advertises it via
+/// The estate origin: REA's `/api/embed` and the `/data` page. The host page advertises it via
 /// `<meta name="rea-url">` (its `NEXT_PUBLIC_REA_URL`); absent it, fall back to the
 /// bundle's own origin (REA serving the bundle itself). A plain DOM read —
 /// `web-sys` is already linked by dioxus-web, so this costs the bundle nothing.

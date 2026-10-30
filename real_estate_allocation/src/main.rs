@@ -1,10 +1,14 @@
-#[cfg(not(target_arch = "wasm32"))]
+use std::path::PathBuf;
+/// Dev-only stand-in for a host page: the element on a bare document (no host
+/// fonts/tokens/preflight — the estate host is the real one).
+#[cfg(debug_assertions)]
+const DEV_HARNESS: &str = r#"<!doctype html><html lang="en"><meta charset="utf-8"><body style="margin:0;background:#070d18;color:#e6e1d3"><script type="module" src="/mfe/data/mfe-real-estate-data.js"></script><mfe-real-estate-data></mfe-real-estate-data></body></html>"#;
+
 fn main() {
 	use std::{sync::Arc, time::Duration};
 
 	use clap::Parser;
 	use real_estate_allocation::{
-		App,
 		config::{AppConfig, LiveSettings, SettingsCommand, SettingsFlags},
 		store::{SqliteStore, seed},
 	};
@@ -113,62 +117,114 @@ fn main() {
 	});
 
 	//HACK: dioxus-server 0.7.9 does not forward `LaunchBuilder::with_context`
-	// to server functions — those contexts only reach the SSR vdom, so a
-	// `consume_context` inside a `#[server]` fn panics ("Must be called from
-	// inside a Dioxus runtime"). We instead attach the shared state as an axum
-	// request extension, which is present on both the SSR render request and
-	// every server-fn POST; `crate::api` reads it via `FullstackContext`.
+	// to server functions, so a `consume_context` inside a `#[server]` fn panics
+	// ("Must be called from inside a Dioxus runtime"). We instead attach the shared
+	// state as an axum request extension, present on every server-fn request;
+	// `crate::api` reads it via `FullstackContext`.
 	use dioxus::server::{
-		axum::{Extension, Router},
+		DioxusRouterExt as _, FullstackState,
+		axum::{Extension, Router, routing::get},
 		http::{Method, header},
 	};
 	use tower_http::cors::{Any, CorsLayer};
 	let addr = config.socket_addr;
 	let app_state = real_estate_allocation::api::AppState { store, config };
-	let mk_router = move || {
-		// Any origin may embed us: the `/api/embed` GET is public read-only and the
-		// server-fn POSTs are token-authed (no ambient cookies), so `*` grants a
-		// browser nothing a server-side client couldn't already fetch — and we stay
-		// agnostic to whoever hosts the bundle. No `allow_credentials`, so `*` holds.
-		let cors = CorsLayer::new()
-			.allow_origin(Any)
-			.allow_methods([Method::GET, Method::POST])
-			.allow_headers([header::CONTENT_TYPE]);
-		Router::new()
-			.merge(dioxus::server::router(App))
-			.route("/health", dioxus::server::axum::routing::get(|| async { "ok" }))
-			.route("/api/embed/building/{id}", dioxus::server::axum::routing::get(real_estate_allocation::api::building_json))
-			.layer(Extension(app_state.clone()))
-			.layer(cors)
-	};
+	let bundle = Bundle::load();
+	// Any origin may call us: the `/api/embed` GET is public read-only and the
+	// server-fn requests are token-authed (no ambient cookies), so `*` grants a
+	// browser nothing a server-side client couldn't already fetch. No
+	// `allow_credentials`, so `*` holds.
+	let cors = CorsLayer::new()
+		.allow_origin(Any)
+		.allow_methods([Method::GET, Method::POST])
+		.allow_headers([header::CONTENT_TYPE]);
+	let mfe = Router::new().register_server_functions().with_state(FullstackState::headless()).merge(bundle.router());
+	let router = Router::new()
+		.nest("/mfe/data", mfe)
+		.route("/health", get(|| async { "ok" }))
+		.route("/api/embed/building/{id}", get(real_estate_allocation::api::building_json));
+	#[cfg(debug_assertions)]
+	let router = router.route("/", get(|| async { dioxus::server::axum::response::Html(DEV_HARNESS) }));
+	let router = router.layer(Extension(app_state)).layer(cors);
 
-	if cfg!(debug_assertions) {
-		// `dx serve` owns the bind address (it sets IP/PORT to its proxy target)
-		// and drives the server hot-patch loop inside `serve`; outside dx, IP/PORT
-		// remain dioxus' own address override.
-		dioxus::server::serve(move || {
-			let router = mk_router();
-			async move { Ok(router) }
-		});
-	} else {
-		// In release `serve` reduces to bind + `axum::serve`, except it spins up a
-		// second runtime and takes the address only via env — bypass it.
-		rt.block_on(async {
-			let listener = tokio::net::TcpListener::bind(addr).await.expect("bind configured socket_addr");
-			dioxus::server::axum::serve(listener, mk_router()).await.expect("server error");
-		});
-	}
+	rt.block_on(async {
+		let listener = tokio::net::TcpListener::bind(addr).await.expect("bind configured socket_addr");
+		dioxus::server::axum::serve(listener, router).await.expect("server error");
+	});
 }
 
-#[cfg(target_arch = "wasm32")]
-fn main() {
-	// dioxus 0.7.9's `launch` wires the server-fn root as `"" + "/" + base_path` —
-	// a relative URL whose parse panics inside the first server-fn call
-	// (RelativeUrlWithoutBase), killing hydration. Compose the absolute root
-	// ourselves and go straight to the web launcher, skipping that block; the
-	// wasm transport only ever sends `url.path()`, so the origin is parse ballast.
-	let origin = web_sys::window().expect("wasm runs in a browser").location().origin().expect("origin is always readable");
-	let base = dioxus::cli_config::base_path().map(|b| format!("/{}", b.trim_matches('/'))).unwrap_or_default();
-	dioxus::fullstack::set_server_url(format!("{origin}{base}").leak());
-	dioxus::web::launch::launch(real_estate_allocation::App, Vec::new(), Vec::new());
+/// The page-MFE bundle (`nix build .#mfe-data`), read from `public/` beside the
+/// binary. Nix store mtimes are all 1970, so `Last-Modified` is no validator: the
+/// heavy files live under a content-hash directory and are cached immutably, and the
+/// two names the host and `mfe!` hard-code carry that hash as their `ETag`.
+struct Bundle {
+	dir: PathBuf,
+	rev: String,
+}
+
+impl Bundle {
+	const CSS: &str = "data.css";
+	// `stylesheet: "data/data.css"` in the `mfe!` call
+	const GLUE: &str = "real_estate_allocation_data.js";
+
+	fn load() -> Self {
+		use std::hash::{Hash as _, Hasher as _};
+		let dir = std::env::current_exe().expect("own exe path").parent().expect("exe has a parent dir").join("public");
+		assert!(
+			dir.join(Self::GLUE).is_file(),
+			"page-MFE bundle missing at {} (build it first: see flake `mfe-data`)",
+			dir.display()
+		);
+		let mut files = Vec::new();
+		let mut stack = vec![dir.clone()];
+		while let Some(d) = stack.pop() {
+			for entry in std::fs::read_dir(&d).unwrap_or_else(|e| panic!("read {}: {e}", d.display())) {
+				let path = entry.expect("dir entry").path();
+				if path.is_dir() { stack.push(path) } else { files.push(path) }
+			}
+		}
+		files.sort();
+		let mut h = std::hash::DefaultHasher::new();
+		for f in &files {
+			f.strip_prefix(&dir).expect("walked from dir").hash(&mut h);
+			std::fs::read(f).unwrap_or_else(|e| panic!("read {}: {e}", f.display())).hash(&mut h);
+		}
+		Self {
+			dir,
+			rev: format!("{:016x}", h.finish()),
+		}
+	}
+
+	fn router<S: Clone + Send + Sync + 'static>(&self) -> dioxus::server::axum::Router<S> {
+		use dioxus::server::{
+			axum::{Router, http::HeaderValue, response::IntoResponse, routing::get},
+			http::{HeaderMap, StatusCode, header},
+		};
+		use tower_http::{services::ServeDir, set_header::SetResponseHeader};
+
+		let etag = HeaderValue::from_str(&format!("\"{}\"", self.rev)).expect("hex is a valid header");
+		let revalidated = move |content_type: &'static str, body: Vec<u8>| {
+			let etag = etag.clone();
+			move |req: HeaderMap| {
+				let etag = etag.clone();
+				let body = body.clone();
+				async move {
+					let headers = [(header::CACHE_CONTROL, HeaderValue::from_static("no-cache")), (header::ETAG, etag.clone())];
+					if req.get(header::IF_NONE_MATCH) == Some(&etag) {
+						return (StatusCode::NOT_MODIFIED, headers).into_response();
+					}
+					(headers, [(header::CONTENT_TYPE, content_type)], body).into_response()
+				}
+			}
+		};
+		let entry = format!("import init from \"./{}/{}\";\nawait init();\n", self.rev, Self::GLUE).into_bytes();
+		let css = std::fs::read(self.dir.join(Self::CSS)).expect("bundle css (checked by load's walk)");
+		Router::new()
+			.route("/mfe-real-estate-data.js", get(revalidated("text/javascript", entry)))
+			.route(&format!("/{}", Self::CSS), get(revalidated("text/css", css)))
+			.nest_service(
+				&format!("/{}", self.rev),
+				SetResponseHeader::overriding(ServeDir::new(&self.dir), header::CACHE_CONTROL, HeaderValue::from_static("public, max-age=31536000, immutable")),
+			)
+	}
 }

@@ -177,7 +177,10 @@ export function rea_render_markers(elId, propsJson, selectedId) {
   const el = document.getElementById(elId);
   if (!el) return;
   const props = JSON.parse(propsJson);
-  if (!__reaMap) {
+  // A remounted dashboard (the host re-creates its element) brings a fresh div.
+  if (!__reaMap || __reaMap.getDiv() !== el) {
+    __reaMarkers = {};
+    __reaFitted = false;
     __reaMap = new google.maps.Map(el, { center: { lat: 13.78, lng: 109.22 }, zoom: 12, disableDefaultUI: true, backgroundColor: '#070d18' });
   }
   const seen = {};
@@ -230,7 +233,7 @@ export function rea_sync_url(buildingId, appt) {
   else { url.searchParams.delete('building'); }
   if (appt) { url.searchParams.set('appt', appt); }
   else { url.searchParams.delete('appt'); }
-  window.history.replaceState({}, '', url);
+  window.history.replaceState(window.history.state, '', url); // keep the host router's entry state
 }
 
 export function rea_url_building() {
@@ -245,7 +248,7 @@ export function rea_sync_selection(csv) {
   const url = new URL(window.location.href);
   if (csv) { url.searchParams.set('selection', csv); }
   else { url.searchParams.delete('selection'); }
-  window.history.replaceState({}, '', url);
+  window.history.replaceState(window.history.state, '', url); // keep the host router's entry state
 }
 
 export function rea_url_selection() {

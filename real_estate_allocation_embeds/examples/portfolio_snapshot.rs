@@ -13,7 +13,7 @@
 //! and `i18n` are pulled in directly rather than through the crate — they compile
 //! natively here.
 //!
-//! Build-time inputs stand in for the wasm-only ones: `AssetOrigin("")` (root-relative,
+//! Build-time inputs stand in for the wasm-only ones: `AssetOrigin("")`/`DataOrigin("")` (root-relative,
 //! the conductor serves `/mfe/seed/...`) and `building = None` (no live fetch → the three
 //! featured stats render the standard `MISSING` placeholder). Dark-only; the conductor is
 //! dark-only, so there is no light variant.
@@ -25,7 +25,7 @@ mod view;
 
 use dioxus::prelude::*;
 use ev_lib::i18n::{Locale, Translator};
-use view::{AssetOrigin, Featured, Overview};
+use view::{AssetOrigin, DataOrigin, Featured, Overview};
 
 fn main() {
 	let arg = std::env::args().nth(1).expect("usage: portfolio_snapshot <locale>");
@@ -54,6 +54,7 @@ fn main() {
 #[component]
 fn Snapshot(locale: Locale) -> Element {
 	use_context_provider(|| AssetOrigin(String::new()));
+	use_context_provider(|| DataOrigin(String::new()));
 	// The snapshot's stand-in for what `mfe!` does from the host page's `lang`.
 	use_context_provider(|| Translator::new(i18n::catalogue(locale), locale));
 	rsx! { Overview { building: Featured(None) } }

@@ -1,9 +1,9 @@
 //! Presentation layer for the Portfolio embed — native-compilable so the same
 //! components render both the live wasm bundle and the static HTML snapshots
 //! (`examples/portfolio_snapshot.rs`, baked by the flake as
-//! `portfolio.<locale>.html`). The two wasm-only inputs are injected: asset origin
-//! via `AssetOrigin` context (wasm → `bundle_origin()`, SSR → `""`), and the
-//! featured building via a prop.
+//! `portfolio.<locale>.html`). The wasm-only inputs are injected: origins via
+//! `AssetOrigin` / `DataOrigin` context (wasm → bundle origin / `<meta rea-url>`,
+//! SSR → `""`), and the featured building via a prop.
 //!
 //! Copy is `t!(tr, key, "English")` — English written where it renders, with
 //! `messages/en/common.json` generated back out of these very sites. The
@@ -37,6 +37,9 @@ const EXPO_MAX: f64 = 100.0;
 const EXPO_STEP: f64 = 1.0;
 #[derive(Clone)]
 pub struct AssetOrigin(pub String);
+/// The estate origin whose `/data` page mounts the dashboard (the host's `rea-url`).
+#[derive(Clone)]
+pub struct DataOrigin(pub String);
 
 // Swap-fraction slider bounds, in percent (0–100% of the host book moved into S).
 
@@ -128,12 +131,11 @@ fn FeaturedCard(building: Featured) -> Element {
 	let tr = use_context::<Translator>();
 	let (target_yield, appreciation, status) = featured_stats(&building);
 	let origin = use_context::<AssetOrigin>().0;
+	let data_origin = use_context::<DataOrigin>().0;
 
 	rsx! {
 		a {
-			// The dashboard breakout stays on the HOST origin: the embed renders on the
-			// conductor's pages, where the dashboard is mounted as the /rea zone.
-			href: "/rea/?building={Q1_PROPERTY}",
+			href: "{data_origin}/data?building={Q1_PROPERTY}",
 			// no-underline: UA link styling propagates from the wrapping <a> to every
 			// descendant on preflight-less hosts (and children can't undo it).
 			class: "group relative flex min-h-[450px] flex-col justify-end overflow-hidden border border-main-mist/10 bg-main-black/40 no-underline md:col-span-2",
@@ -173,9 +175,10 @@ fn FeaturedCard(building: Featured) -> Element {
 fn SideCard() -> Element {
 	let tr = use_context::<Translator>();
 	let origin = use_context::<AssetOrigin>().0;
+	let data_origin = use_context::<DataOrigin>().0;
 	rsx! {
 		a {
-			href: "/rea/?building={TMS_PROPERTY}",
+			href: "{data_origin}/data?building={TMS_PROPERTY}",
 			class: "group relative flex min-h-[450px] flex-col justify-end overflow-hidden border border-main-mist/10 bg-main-black/40 no-underline",
 			div {
 				class: "absolute inset-0 z-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105",

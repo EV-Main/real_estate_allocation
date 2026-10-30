@@ -34,12 +34,14 @@ v_utils = { version = "^2.15.56", features = ["io", "macros", "cli"] }
 # microfrontend stack — pinned to the exact revs `site` verified against.
 async-trait = "^0.1"
 dioxus = { version = "^0.7" }
+dioxus-fullstack = "^0.7"
 dioxus-ssr = "0.7"
 ev_lib = "^0.24.2"
 getrandom = { version = "^0.4", features = ["wasm_js"] }
 gloo-net = "^0.7"
 insta = "^1"
 jiff = { version = "^0.2", features = ["serde"] }
+real_estate_allocation = { path = "real_estate_allocation", default-features = false }
 real_estate_allocation_core = { path = "real_estate_allocation_core" }
 real_estate_allocation_embeds = { path = "real_estate_allocation_embeds" }
 secrecy = "^0.10"

@@ -5,8 +5,8 @@ edition = "2024"
 
 # Pure domain layer: `domain` + `factors` + `error`, with zero dioxus and zero
 # miette. Shared by the native dashboard/server (via REA's lib re-export) and the
-# wasm embed bundle (`real_estate_allocation_embeds`) — the latter can't pull the
-# full REA lib, whose wasm target hard-links dioxus `fullstack`.
+# light wasm embed bundle (`real_estate_allocation_embeds`), which must not pull the
+# whole dashboard lib.
 [dependencies]
 ev_lib = { workspace = true, features = ["architecture", "i18n"] }
 jiff.workspace = true

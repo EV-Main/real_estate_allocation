@@ -4,6 +4,7 @@ use std::collections::BTreeMap;
 use dioxus::prelude::*;
 #[cfg(not(target_arch = "wasm32"))]
 use dioxus::server::axum::{Extension, Json, extract::Path};
+use dioxus_fullstack::{ServerFnError, server};
 
 use crate::domain::{Building, BuildingId, FileKind, PropertyFile, PropertyStateKind};
 

@@ -63,17 +63,17 @@ jobs:
             if [ "${{ github.ref_type }}" = "tag" ]; then
               nix run nixpkgs#skopeo -- copy \
                 "docker-archive:$RESULT" \
-                "docker://ghcr.io/ev-main/${name,,}:${{ github.ref_name }}"
+                "docker://ghcr.io/ev-estate/${name,,}:${{ github.ref_name }}"
             elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
               [ "${{ github.ref }}" = "refs/heads/main" ] || { echo "::error::dispatch publishes main's head only, not ${{ github.ref }}" >&2; exit 1; }
               nix run nixpkgs#skopeo -- copy \
                 "docker-archive:$RESULT" \
-                "docker://ghcr.io/ev-main/${name,,}:main-${GITHUB_SHA::8}"
+                "docker://ghcr.io/ev-estate/${name,,}:main-${GITHUB_SHA::8}"
             elif [ "${{ github.event_name }}" = "pull_request" ]; then
               head="${{ github.event.pull_request.head.sha }}"
               nix run nixpkgs#skopeo -- copy \
                 "docker-archive:$RESULT" \
-                "docker://ghcr.io/ev-main/${name,,}:pr-${{ github.event.pull_request.number }}-${head::8}"
+                "docker://ghcr.io/ev-estate/${name,,}:pr-${{ github.event.pull_request.number }}-${head::8}"
             else
               echo "cache-seed build ($name) on ${{ github.ref_name }} — skipping GHCR push"
             fi
